@@ -1,5 +1,7 @@
 # Hybrid Task Runner
 
+[![pub package](https://img.shields.io/pub/v/hybrid_task_runner.svg)](https://pub.dev/packages/hybrid_task_runner)
+
 A Flutter package for running background tasks on Android. It combines AlarmManager + WorkManager to get the best of both worlds.
 
 **Platform: Android only** (iOS is not supported yet)
@@ -38,11 +40,17 @@ dependencies:
 
 ## Install
 
+Run this command:
+
+```bash
+flutter pub add hybrid_task_runner
+```
+
+Or add it to `pubspec.yaml`:
+
 ```yaml
 dependencies:
-  hybrid_task_runner:
-    git:
-      url: https://github.com/user/hybrid_task_runner.git
+  hybrid_task_runner: ^1.1.0
 ```
 
 ## Android Setup

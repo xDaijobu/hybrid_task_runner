@@ -1,6 +1,6 @@
 name: hybrid_task_runner
 description: "A Flutter package implementing a Hybrid Background Strategy using AlarmManager for precision scheduling and WorkManager for reliable long-running task execution on Android."
-version: 1.1.0
+version: 1.1.1
 homepage: https://github.com/user/hybrid_task_runner
 repository: https://github.com/user/hybrid_task_runner
 issue_tracker: https://github.com/user/hybrid_task_runner/issues
