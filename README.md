@@ -142,6 +142,24 @@ if (!canSchedule) {
 await HybridRunner.registerTask(...);
 ```
 
+**Example UI Flow:**
+
+| Permission Dialog | System Settings |
+|:-----------------:|:---------------:|
+| ![Permission Dialog](docs/permission_dialog.png) | ![Alarms & Reminders Settings](docs/permission_settings.png) |
+
+When the user taps "Open Settings", they'll be redirected to the system settings where they can enable "Allow setting alarms and reminders".
+
+**Android Version Compatibility:**
+
+| Android Version | Behavior |
+|-----------------|----------|
+| **API ≤ 30** (Android 11 and below) | No permission needed. Exact alarms always work. |
+| **API 31-33** (Android 12-13) | `SCHEDULE_EXACT_ALARM` auto-granted on install. |
+| **API 34+** (Android 14+) | Permission denied by default. User must grant manually in Settings. |
+
+> **Note:** The `canScheduleExactAlarms()` method handles all versions automatically. It returns `true` on older Android versions where permission is not required.
+
 ## Usage
 
 ### 1. Create the callback function
