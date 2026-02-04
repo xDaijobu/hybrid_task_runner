@@ -63,8 +63,9 @@ Add permissions inside `<manifest>`:
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 <uses-permission android:name="android.permission.WAKE_LOCK"/>
 <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-<uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
 ```
+
+> **Note:** Do NOT add `USE_EXACT_ALARM` unless your app is a calendar or alarm clock app. That permission is restricted by Google Play policy.
 
 Add service & receivers inside `<application>`:
 
@@ -98,6 +99,66 @@ android {
     }
 }
 ```
+
+### 3. Handle Android 14+ Permission (Important!)
+
+On **Android 14+**, the `SCHEDULE_EXACT_ALARM` permission is **denied by default** for newly installed apps. Users must manually grant it in Settings.
+
+Before scheduling tasks, check and request permission:
+
+```dart
+// Check if permission is granted
+final canSchedule = await HybridRunner.canScheduleExactAlarms();
+
+if (!canSchedule) {
+  // Show dialog explaining why the permission is needed
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Permission Required'),
+      content: Text(
+        'To run tasks at exact times, please enable '
+        '"Alarms & reminders" in Settings.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Later'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            await HybridRunner.openExactAlarmSettings();
+          },
+          child: Text('Open Settings'),
+        ),
+      ],
+    ),
+  );
+  return;
+}
+
+// Permission granted, safe to schedule
+await HybridRunner.registerTask(...);
+```
+
+**Example UI Flow:**
+
+| Permission Dialog | System Settings |
+|:-----------------:|:---------------:|
+| ![Permission Dialog](docs/permission_dialog.png) | ![Alarms & Reminders Settings](docs/permission_settings.png) |
+
+When the user taps "Open Settings", they'll be redirected to the system settings where they can enable "Allow setting alarms and reminders".
+
+**Android Version Compatibility:**
+
+| Android Version | Behavior |
+|-----------------|----------|
+| **API ≤ 30** (Android 11 and below) | No permission needed. Exact alarms always work. |
+| **API 31-33** (Android 12-13) | `SCHEDULE_EXACT_ALARM` auto-granted on install. |
+| **API 34+** (Android 14+) | Permission denied by default. User must grant manually in Settings. |
+
+> **Note:** The `canScheduleExactAlarms()` method handles all versions automatically. It returns `true` on older Android versions where permission is not required.
 
 ## Usage
 
@@ -395,6 +456,13 @@ The 15-minute minimum only applies to the **backup periodic task** - a fallback 
 | `HybridRunner.getRegisteredTasks()` | Get a list of all registered tasks. |
 | `HybridRunner.stopTask(name)` | Stop and remove a specific task by name. |
 | `HybridRunner.stopAllTasks()` | Stop all registered tasks. |
+
+### Permission API (Android 12+)
+
+| Method | Description |
+|--------|-------------|
+| `HybridRunner.canScheduleExactAlarms()` | Check if exact alarm permission is granted. Returns `true` on Android 11-. |
+| `HybridRunner.openExactAlarmSettings()` | Open system settings for exact alarm permission. |
 
 #### `registerTask` Parameters
 

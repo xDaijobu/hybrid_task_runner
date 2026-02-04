@@ -4,8 +4,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     
     <!-- Required for exact alarms on Android 12+ (API 31+) -->
+    <!-- On Android 14+, this permission is denied by default for newly installed apps -->
+    <!-- Apps must call canScheduleExactAlarms() and guide users to Settings to grant -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     
-    <!-- Required for exact alarms on Android 14+ (API 34+) -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <!-- Note: USE_EXACT_ALARM is intentionally NOT declared here -->
+    <!-- That permission is only for calendar/alarm apps per Play Store policy -->
 </manifest>

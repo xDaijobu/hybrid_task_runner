@@ -38,6 +38,7 @@ import 'dart:developer' as developer;
 import 'dart:ui';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'src/callbacks.dart';
@@ -288,6 +289,79 @@ class HybridRunner {
   /// Returns the current loop interval, or null if not set.
   static Future<Duration?> get loopInterval async {
     return HybridStorage.getLoopInterval();
+  }
+
+  // ============================================
+  // Permission API (Android 12+)
+  // ============================================
+
+  /// Checks if the app can schedule exact alarms.
+  ///
+  /// On Android 12+ (API 31+), this requires the `SCHEDULE_EXACT_ALARM` permission.
+  /// On Android 14+ (API 34+), this permission is **denied by default** for newly
+  /// installed apps targeting API 33+. Users must manually grant this permission
+  /// in system Settings > Apps > Alarms & reminders.
+  ///
+  /// Returns `true` if:
+  /// - The app has permission to schedule exact alarms, OR
+  /// - The device is running Android 11 or lower (no permission needed), OR
+  /// - The platform is not Android (iOS, web, etc.)
+  ///
+  /// Example:
+  /// ```dart
+  /// final canSchedule = await HybridRunner.canScheduleExactAlarms();
+  /// if (!canSchedule) {
+  ///   // Show dialog explaining why permission is needed
+  ///   // Then offer to open settings
+  ///   await HybridRunner.openExactAlarmSettings();
+  /// }
+  /// ```
+  static Future<bool> canScheduleExactAlarms() async {
+    final status = await Permission.scheduleExactAlarm.status;
+    developer.log('Exact alarm permission status: $status', name: _logTag);
+    return status.isGranted;
+  }
+
+  /// Opens the system settings page for exact alarm permission.
+  ///
+  /// On Android 12+, this opens Settings > Apps > [Your App] > Alarms & reminders.
+  /// Users must enable the toggle for exact alarms to work.
+  ///
+  /// On platforms/versions where this setting is not available, this method
+  /// will attempt to open the app settings page instead.
+  ///
+  /// Returns `true` if the settings page was opened successfully.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Show dialog first explaining why permission is needed
+  /// showDialog(
+  ///   context: context,
+  ///   builder: (context) => AlertDialog(
+  ///     title: Text('Permission Required'),
+  ///     content: Text('To run tasks at exact times, please enable '
+  ///         '"Alarms & reminders" in the next screen.'),
+  ///     actions: [
+  ///       TextButton(
+  ///         onPressed: () => Navigator.pop(context),
+  ///         child: Text('Cancel'),
+  ///       ),
+  ///       TextButton(
+  ///         onPressed: () async {
+  ///           Navigator.pop(context);
+  ///           await HybridRunner.openExactAlarmSettings();
+  ///         },
+  ///         child: Text('Open Settings'),
+  ///       ),
+  ///     ],
+  ///   ),
+  /// );
+  /// ```
+  static Future<bool> openExactAlarmSettings() async {
+    developer.log('Opening exact alarm settings...', name: _logTag);
+    final opened = await openAppSettings();
+    developer.log('Settings opened: $opened', name: _logTag);
+    return opened;
   }
 
   // ============================================
