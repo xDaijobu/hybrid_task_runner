@@ -143,6 +143,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Duration _interval = const Duration(minutes: 1);
   String _status = 'Not started';
   int _logCount = 0;
+  bool _hasExactAlarmPermission = true; // Assume true until checked
 
   @override
   void initState() {
@@ -152,6 +153,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     AppLifecycleTracker.setForeground();
     _checkStatus();
     _updateLogCount();
+    _checkExactAlarmPermission();
   }
 
   @override
@@ -171,6 +173,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         developer.log('App is now in FOREGROUND', name: 'ExampleApp');
         // Refresh log count when returning to foreground
         _updateLogCount();
+        // Re-check permission (user may have granted it in settings)
+        _checkExactAlarmPermission();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -203,8 +207,63 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> _checkExactAlarmPermission() async {
+    final hasPermission = await HybridRunner.canScheduleExactAlarms();
+    setState(() {
+      _hasExactAlarmPermission = hasPermission;
+    });
+  }
+
+  Future<void> _showPermissionDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permission Required'),
+        content: const Text(
+          'To run tasks at exact times, please enable '
+          '"Alarms & reminders" in Settings.\n\n'
+          'Without this permission, task timing may be delayed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Later'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await HybridRunner.openExactAlarmSettings();
+    }
+  }
+
   Future<void> _startRunner() async {
     try {
+      // Check permission first on Android 12+
+      final hasPermission = await HybridRunner.canScheduleExactAlarms();
+      if (!hasPermission) {
+        // Show permission dialog
+        await _showPermissionDialog();
+        // Re-check after returning from settings
+        await _checkExactAlarmPermission();
+        if (!_hasExactAlarmPermission) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permission required for exact timing'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return; // Don't start without permission
+        }
+      }
+
       await HybridRunner.start(
         callback: myHeavyTask,
         loopInterval: _interval,
@@ -350,7 +409,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Permission Status Card (Android 12+)
+            if (!_hasExactAlarmPermission)
+              Card(
+                color: Colors.orange.shade900.withValues(alpha: 0.3),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber,
+                        color: Colors.orange,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Exact Alarm Permission Required',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Android 14+ requires manual permission grant',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _showPermissionDialog,
+                        child: const Text('Grant'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // Interval Selector
             Card(

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - Unreleased
+
+### Added
+
+- **Permission API** for Android 12+ exact alarm permission handling
+  - `HybridRunner.canScheduleExactAlarms()` - Check if exact alarms are allowed
+  - `HybridRunner.openExactAlarmSettings()` - Open system settings for permission grant
+- Added `permission_handler` dependency
+
+### Changed
+
+- **BREAKING**: Removed `USE_EXACT_ALARM` permission from package manifest
+  - This permission is only for calendar/alarm apps per Google Play policy
+  - Apps must now check permission and guide users to Settings on Android 14+
+- Updated README with Android 14+ permission handling guide
+- Updated example app with permission status card and grant button
+
 ## [1.1.1] - 2026-02-04
 
 ### Documentation
