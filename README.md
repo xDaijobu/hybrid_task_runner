@@ -254,6 +254,97 @@ Schedule next alarm
 [Loop continues...]
 ```
 
+## Verifying Background Execution
+
+### Method 1: Using ADB Logcat
+
+Connect your device via USB and run:
+
+```bash
+# Filter logs for HybridRunner
+adb logcat -s HybridRunner:V
+
+# Or filter by your app's tag
+adb logcat | findstr "HybridRunner"   # Windows
+adb logcat | grep "HybridRunner"       # Mac/Linux
+```
+
+Expected output when task runs:
+```
+D HybridRunner: Alarm triggered, enqueuing WorkManager task...
+D HybridRunner: Policy: parallel - running with unique ID: hybridTask_1234567890
+D HybridRunner: WorkManager task enqueued successfully
+D HybridRunner: WorkManager task started: hybridTask
+D HybridRunner: Executing task: syncData
+D HybridRunner: Task syncData completed with result: true
+D HybridRunner: Scheduling next alarm in 900 seconds
+```
+
+### Method 2: Database Logging (Recommended)
+
+Log task executions to a local database so you can verify them later in the UI.
+
+```dart
+import 'package:sqflite/sqflite.dart';
+
+@pragma('vm:entry-point')
+Future<bool> myBackgroundTask() async {
+  // Log to database
+  final db = await openDatabase('task_logs.db');
+  await db.insert('logs', {
+    'timestamp': DateTime.now().toIso8601String(),
+    'event': 'TASK_EXECUTED',
+    'message': 'Background task ran successfully',
+  });
+  
+  // Your actual task logic here
+  await syncDataToServer();
+  
+  return true;
+}
+```
+
+Then display these logs in your app's UI to verify background execution.
+
+### Method 3: Step-by-Step Testing
+
+1. **Start the runner** with a short interval (e.g., 1 minute)
+   ```dart
+   await HybridRunner.registerTask(
+     name: 'test',
+     callback: testTask,
+     interval: Duration(minutes: 1),
+     runImmediately: true,
+   );
+   ```
+
+2. **Close the app** (swipe away, NOT force close)
+
+3. **Wait for the interval** to pass
+
+4. **Check logs** via ADB or open the app to see database logs
+
+5. **Repeat** to verify multiple executions
+
+### Test Checklist
+
+| Scenario | How to Test |
+|----------|-------------|
+| App in foreground | Start runner, wait for interval |
+| App in background | Minimize app, wait for interval |
+| App closed (swiped away) | Close app, wait for interval, check logs |
+| After device reboot | Reboot device, wait for interval |
+| Screen off | Lock device, wait for interval |
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Task doesn't run when app closed | Check battery optimization settings |
+| Task delayed significantly | Enable "alarmClock" mode (already enabled by default) |
+| Task stops after some time | Whitelist app from battery saver |
+| No logs appearing | Ensure callback has `@pragma('vm:entry-point')` |
+
 ## Limitations
 
 ### Force Close
